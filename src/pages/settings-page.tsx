@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { StatusBanner } from '../components/status-banner'
 import { DEMO_APP_CONFIG } from '../lib/demo'
 import { loadTextResource } from '../lib/resource-loader'
+import { testPortalConnection } from '../services/portal-provider'
 import { useAppStore } from '../store/app-store'
 
 export function SettingsPage() {
@@ -12,8 +13,11 @@ export function SettingsPage() {
   const [status, setStatus] = useState('')
   const [testing, setTesting] = useState(false)
   const [form, setForm] = useState({
+    providerType: config?.providerType ?? 'm3u',
     playlistUrl: config?.playlistUrl ?? '',
     epgUrl: config?.epgUrl ?? '',
+    portalUrl: config?.portalUrl ?? '',
+    macAddress: config?.macAddress ?? '',
     tmdbApiKey: config?.tmdbApiKey ?? '',
     preferredProfile: config?.preferredProfile ?? 'cinema',
   })
@@ -22,8 +26,16 @@ export function SettingsPage() {
     setTesting(true)
     setStatus('')
     try {
-      await Promise.all([loadTextResource(form.playlistUrl), loadTextResource(form.epgUrl)])
-      setStatus('Both sources responded successfully.')
+      if (form.providerType === 'portal') {
+        await testPortalConnection({
+          portalUrl: form.portalUrl,
+          macAddress: form.macAddress,
+        })
+        setStatus('Portal handshake succeeded.')
+      } else {
+        await Promise.all([loadTextResource(form.playlistUrl), loadTextResource(form.epgUrl)])
+        setStatus('Both sources responded successfully.')
+      }
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Unable to reach the configured sources.')
     } finally {
@@ -41,27 +53,75 @@ export function SettingsPage() {
             Browser-based IPTV setups often depend on CORS-friendly playlist hosts. If a source fails here, it may still need a proxy or wrapper later.
           </p>
 
-          {status ? <StatusBanner message={status} status={status.includes('successfully') ? 'loading' : 'error'} /> : null}
-
-          <label className="field">
-            <span>Playlist URL</span>
-            <input
-              className="text-field"
-              data-focusable="true"
-              onChange={(event) => setForm((current) => ({ ...current, playlistUrl: event.target.value }))}
-              value={form.playlistUrl}
+          {status ? (
+            <StatusBanner
+              message={status}
+              status={status.includes('successfully') || status.includes('succeeded') ? 'loading' : 'error'}
             />
-          </label>
+          ) : null}
 
-          <label className="field">
-            <span>XMLTV URL</span>
-            <input
-              className="text-field"
-              data-focusable="true"
-              onChange={(event) => setForm((current) => ({ ...current, epgUrl: event.target.value }))}
-              value={form.epgUrl}
-            />
-          </label>
+          <div className="chip-row">
+            {[
+              { value: 'm3u', label: 'M3U / XMLTV' },
+              { value: 'portal', label: 'Portal / MAC' },
+            ].map((provider) => (
+              <button
+                key={provider.value}
+                className={`chip${provider.value === form.providerType ? ' is-active' : ''}`}
+                data-focusable="true"
+                type="button"
+                onClick={() => setForm((current) => ({ ...current, providerType: provider.value as 'm3u' | 'portal' }))}
+              >
+                {provider.label}
+              </button>
+            ))}
+          </div>
+
+          {form.providerType === 'm3u' ? (
+            <>
+              <label className="field">
+                <span>Playlist URL</span>
+                <input
+                  className="text-field"
+                  data-focusable="true"
+                  onChange={(event) => setForm((current) => ({ ...current, playlistUrl: event.target.value }))}
+                  value={form.playlistUrl}
+                />
+              </label>
+
+              <label className="field">
+                <span>XMLTV URL</span>
+                <input
+                  className="text-field"
+                  data-focusable="true"
+                  onChange={(event) => setForm((current) => ({ ...current, epgUrl: event.target.value }))}
+                  value={form.epgUrl}
+                />
+              </label>
+            </>
+          ) : (
+            <>
+              <label className="field">
+                <span>Portal URL</span>
+                <input
+                  className="text-field"
+                  data-focusable="true"
+                  onChange={(event) => setForm((current) => ({ ...current, portalUrl: event.target.value }))}
+                  value={form.portalUrl}
+                />
+              </label>
+
+              <label className="field">
+                <span>MAC address</span>
+                <input
+                  className="text-field"
+                  data-focusable="true"
+                  onChange={(event) => setForm((current) => ({ ...current, macAddress: event.target.value.toUpperCase() }))}
+                  value={form.macAddress}
+                />
+              </label>
+            </>
+          )}
 
           <label className="field">
             <span>TMDb API Key</span>
@@ -111,8 +171,11 @@ export function SettingsPage() {
               type="button"
               onClick={() =>
                 setForm({
+                  providerType: DEMO_APP_CONFIG.providerType,
                   playlistUrl: DEMO_APP_CONFIG.playlistUrl,
                   epgUrl: DEMO_APP_CONFIG.epgUrl,
+                  portalUrl: DEMO_APP_CONFIG.portalUrl,
+                  macAddress: DEMO_APP_CONFIG.macAddress,
                   tmdbApiKey: '',
                   preferredProfile: 'cinema',
                 })

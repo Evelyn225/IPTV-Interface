@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { getItemById } from '../lib/catalog-selectors'
 import { detectPlaybackMode } from '../lib/playback'
 import { minutesFromSeconds } from '../lib/utils'
+import { resolvePortalStreamUrl } from '../services/portal-provider'
 import { useAppStore } from '../store/app-store'
 
 export function PlayerPage() {
@@ -10,6 +11,7 @@ export function PlayerPage() {
   const { items } = useAppStore((state) => state.catalog)
   const history = useAppStore((state) => state.history)
   const recordPlayback = useAppStore((state) => state.recordPlayback)
+  const config = useAppStore((state) => state.config)
   const item = getItemById(items, itemId)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const hlsRef = useRef<{ destroy: () => void } | null>(null)
@@ -58,12 +60,17 @@ export function PlayerPage() {
       return
     }
 
+    if (!config) {
+      setErrorMessage('Playback configuration is missing.')
+      return
+    }
+
     const currentItem = item
     const currentVideo = video
+    const currentConfig = config
     let cancelled = false
     setErrorMessage('')
     const resumePosition = history.find((entry) => entry.itemId === currentItem.id)?.positionSeconds ?? 0
-    const playbackMode = detectPlaybackMode(currentItem.source.url, currentItem.source.mimeType)
     const applyResume = () => {
       if (resumePosition > 0 && !currentItem.source.isLive) {
         currentVideo.currentTime = resumePosition
@@ -72,12 +79,23 @@ export function PlayerPage() {
     }
 
     async function startPlayback() {
+      const playbackUrl =
+        currentItem.source.providerType === 'portal'
+          ? await resolvePortalStreamUrl(currentConfig, currentItem.source)
+          : currentItem.source.url
+
+      if (!playbackUrl) {
+        throw new Error('No playback URL was available for this item.')
+      }
+
+      const playbackMode = detectPlaybackMode(playbackUrl, currentItem.source.mimeType)
+
       if (playbackMode === 'hls') {
         const { default: Hls } = await import('hls.js')
         if (!cancelled && Hls.isSupported()) {
           const hls = new Hls()
           hlsRef.current = hls
-          hls.loadSource(currentItem.source.url)
+          hls.loadSource(playbackUrl)
           hls.attachMedia(currentVideo)
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
             applyResume()
@@ -92,12 +110,14 @@ export function PlayerPage() {
         }
       }
 
-      currentVideo.src = currentItem.source.url
+      currentVideo.src = playbackUrl
       currentVideo.addEventListener('loadedmetadata', applyResume, { once: true })
       void currentVideo.play().catch(() => undefined)
     }
 
-    void startPlayback()
+    void startPlayback().catch((error) => {
+      setErrorMessage(error instanceof Error ? error.message : 'Playback could not start.')
+    })
 
     currentVideo.addEventListener('timeupdate', onTimeUpdate)
     currentVideo.addEventListener('play', onPlaybackStateChange)
@@ -117,7 +137,7 @@ export function PlayerPage() {
       currentVideo.removeAttribute('src')
       currentVideo.load()
     }
-  }, [history, item, recordPlayback])
+  }, [config, history, item, recordPlayback])
 
   function togglePlayPause() {
     const video = videoRef.current

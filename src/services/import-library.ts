@@ -3,9 +3,21 @@ import { enrichCatalogItems } from './metadata-enricher'
 import { normalizeCatalog } from './normalize-catalog'
 import { parseXmltv } from './epg-provider'
 import { parseM3u } from './playlist-provider'
+import { fetchPortalPlaylist } from './portal-provider'
 import type { AppConfig, CatalogSnapshot } from '../types'
 
 export async function importLibrary(config: AppConfig): Promise<CatalogSnapshot> {
+  if (config.providerType === 'portal') {
+    const parsedPlaylist = await fetchPortalPlaylist(config)
+    const normalized = normalizeCatalog(parsedPlaylist, [])
+    const items = await enrichCatalogItems(normalized, config.tmdbApiKey)
+
+    return {
+      items,
+      importedAt: new Date().toISOString(),
+    }
+  }
+
   const [playlistContent, epgContent] = await Promise.all([
     loadTextResource(config.playlistUrl),
     loadTextResource(config.epgUrl),

@@ -8,14 +8,17 @@ import {
   saveConfig,
   savePlaybackHistory,
 } from '../lib/db'
-import type { AppConfig, CatalogSnapshot, PlaybackHistoryEntry, PreferredProfile } from '../types'
+import type { AppConfig, CatalogSnapshot, PlaybackHistoryEntry, PreferredProfile, ProviderType } from '../types'
 import { importLibrary } from '../services/import-library'
 
 type AppStatus = 'booting' | 'needs-setup' | 'loading' | 'ready' | 'error'
 
 interface SaveSetupInput {
+  providerType: ProviderType
   playlistUrl: string
   epgUrl: string
+  portalUrl: string
+  macAddress: string
   tmdbApiKey: string
   preferredProfile: PreferredProfile
 }

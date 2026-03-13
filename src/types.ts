@@ -3,11 +3,16 @@ export type LibrarySection = 'home' | 'movies' | 'series' | 'live'
 export type MediaType = 'movie' | 'series' | 'episode' | 'channel'
 
 export type PreferredProfile = 'cinema' | 'balanced'
+export type ProviderType = 'm3u' | 'portal'
+export type PortalStreamType = 'itv' | 'vod'
 
 export interface AppConfig {
   id: 'default'
+  providerType: ProviderType
   playlistUrl: string
   epgUrl: string
+  portalUrl: string
+  macAddress: string
   tmdbApiKey: string
   lastRefreshAt?: string
   preferredProfile: PreferredProfile
@@ -21,10 +26,14 @@ export interface MediaArtwork {
 }
 
 export interface PlaybackSource {
-  url: string
+  url?: string
   mimeType?: string
   isLive: boolean
   resumePosition?: number
+  providerType?: 'direct' | 'portal'
+  portalType?: PortalStreamType
+  portalCommand?: string
+  portalEpisode?: number
 }
 
 export interface PlaylistEntry {

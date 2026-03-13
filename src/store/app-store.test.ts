@@ -23,8 +23,11 @@ describe('useAppStore', () => {
     expect(useAppStore.getState().status).toBe('needs-setup')
 
     await useAppStore.getState().saveSetup({
+      providerType: DEMO_APP_CONFIG.providerType,
       playlistUrl: DEMO_APP_CONFIG.playlistUrl,
       epgUrl: DEMO_APP_CONFIG.epgUrl,
+      portalUrl: DEMO_APP_CONFIG.portalUrl,
+      macAddress: DEMO_APP_CONFIG.macAddress,
       tmdbApiKey: '',
       preferredProfile: 'cinema',
     })

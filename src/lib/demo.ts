@@ -5,8 +5,11 @@ export const DEMO_EPG_URL = 'demo://epg'
 
 export const DEMO_APP_CONFIG: AppConfig = {
   id: 'default',
+  providerType: 'm3u',
   playlistUrl: DEMO_PLAYLIST_URL,
   epgUrl: DEMO_EPG_URL,
+  portalUrl: '',
+  macAddress: '',
   tmdbApiKey: '',
   preferredProfile: 'cinema',
 }

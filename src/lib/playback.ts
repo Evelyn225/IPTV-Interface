@@ -1,8 +1,8 @@
 import type { CatalogItem } from '../types'
 import { resolveSeriesEpisodes } from './utils'
 
-export function detectPlaybackMode(url: string, mimeType?: string) {
-  if (mimeType?.includes('mpegURL') || url.endsWith('.m3u8')) {
+export function detectPlaybackMode(url?: string, mimeType?: string) {
+  if (mimeType?.includes('mpegURL') || url?.endsWith('.m3u8')) {
     return 'hls'
   }
 

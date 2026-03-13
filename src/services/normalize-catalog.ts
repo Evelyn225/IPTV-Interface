@@ -6,6 +6,7 @@ import type {
   CatalogSeries,
   EpgProgram,
   PlaylistEntry,
+  PlaybackSource,
 } from '../types'
 import {
   createAccentFromTitle,
@@ -18,6 +19,11 @@ import {
 } from '../lib/utils'
 
 function detectKind(entry: PlaylistEntry): 'movie' | 'series' | 'channel' {
+  const declaredType = entry.attrs['content-type']
+  if (declaredType === 'movie' || declaredType === 'series' || declaredType === 'channel') {
+    return declaredType
+  }
+
   const title = entry.title.toLowerCase()
   const group = entry.groupTitle?.toLowerCase() ?? ''
   const combined = `${title} ${group}`
@@ -34,6 +40,20 @@ function detectKind(entry: PlaylistEntry): 'movie' | 'series' | 'channel' {
 }
 
 function createBase(entry: PlaylistEntry, addedAt: string) {
+  const kind = detectKind(entry)
+  const source: PlaybackSource = {
+    url: entry.url || undefined,
+    isLive: kind === 'channel',
+    mimeType: entry.url.endsWith('.m3u8') ? 'application/x-mpegURL' : undefined,
+    providerType: entry.attrs['source-provider'] === 'portal' ? 'portal' : 'direct',
+    portalType:
+      entry.attrs['portal-type'] === 'itv' || entry.attrs['portal-type'] === 'vod'
+        ? entry.attrs['portal-type']
+        : undefined,
+    portalCommand: entry.attrs['portal-command'],
+    portalEpisode: entry.attrs['portal-episode'] ? Number(entry.attrs['portal-episode']) : undefined,
+  }
+
   return {
     synopsis: `${entry.groupTitle ?? 'Imported media'} from your IPTV library.`,
     genres: entry.groupTitle
@@ -47,11 +67,7 @@ function createBase(entry: PlaylistEntry, addedAt: string) {
       backdrop: entry.tvgLogo,
       accent: createAccentFromTitle(entry.title),
     },
-    source: {
-      url: entry.url,
-      isLive: detectKind(entry) === 'channel',
-      mimeType: entry.url.endsWith('.m3u8') ? 'application/x-mpegURL' : undefined,
-    },
+    source,
     addedAt,
     year: parseYear(entry.title),
     rawGroup: entry.groupTitle,
