@@ -6,12 +6,31 @@ import https from 'node:https'
 import { URL } from 'node:url'
 
 function pickForwardHeaders(headers: IncomingHttpHeaders) {
-  const allowed = ['accept', 'authorization', 'cookie', 'user-agent', 'x-user-agent']
-  return Object.fromEntries(
-    Object.entries(headers).filter(
-      ([key, value]) => allowed.includes(key.toLowerCase()) && typeof value === 'string',
-    ),
-  )
+  const forwarded: Record<string, string> = {}
+
+  const directAllowed = ['accept', 'authorization', 'cookie', 'user-agent', 'x-user-agent']
+  for (const [key, value] of Object.entries(headers)) {
+    if (directAllowed.includes(key.toLowerCase()) && typeof value === 'string') {
+      forwarded[key] = value
+    }
+  }
+
+  const proxyMap: Record<string, string> = {
+    'x-proxy-accept': 'Accept',
+    'x-proxy-authorization': 'Authorization',
+    'x-proxy-cookie': 'Cookie',
+    'x-proxy-user-agent': 'User-Agent',
+    'x-proxy-x-user-agent': 'X-User-Agent',
+  }
+
+  for (const [proxyHeader, realHeader] of Object.entries(proxyMap)) {
+    const value = headers[proxyHeader]
+    if (typeof value === 'string') {
+      forwarded[realHeader] = value
+    }
+  }
+
+  return forwarded
 }
 
 function portalProxyPlugin() {
