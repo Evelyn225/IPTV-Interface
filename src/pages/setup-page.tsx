@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { Capacitor } from '@capacitor/core'
 import { DEMO_APP_CONFIG } from '../lib/demo'
 import { useAppStore } from '../store/app-store'
 
 export function SetupPage() {
+  const usesOnDevicePortalBridge = Capacitor.getPlatform() === 'android'
   const saveSetup = useAppStore((state) => state.saveSetup)
   const status = useAppStore((state) => state.status)
   const errorMessage = useAppStore((state) => state.errorMessage)
@@ -11,6 +13,7 @@ export function SetupPage() {
     playlistUrl: string
     epgUrl: string
     portalUrl: string
+    portalBackendUrl: string
     macAddress: string
     tmdbApiKey: string
     preferredProfile: 'cinema' | 'balanced'
@@ -19,6 +22,7 @@ export function SetupPage() {
     playlistUrl: '',
     epgUrl: '',
     portalUrl: '',
+    portalBackendUrl: '',
     macAddress: '',
     tmdbApiKey: '',
     preferredProfile: 'cinema',
@@ -111,6 +115,19 @@ export function SetupPage() {
                   value={form.macAddress}
                 />
               </label>
+
+              {!usesOnDevicePortalBridge ? (
+                <label className="field">
+                  <span>Portal backend URL</span>
+                  <input
+                    className="text-field"
+                    data-focusable="true"
+                    onChange={(event) => setForm((current) => ({ ...current, portalBackendUrl: event.target.value }))}
+                    placeholder="Leave blank on PC, or use http://192.168.x.x:8787 on another device"
+                    value={form.portalBackendUrl}
+                  />
+                </label>
+              ) : null}
             </>
           )}
 
@@ -155,6 +172,7 @@ export function SetupPage() {
                   playlistUrl: DEMO_APP_CONFIG.playlistUrl,
                   epgUrl: DEMO_APP_CONFIG.epgUrl,
                   portalUrl: DEMO_APP_CONFIG.portalUrl,
+                  portalBackendUrl: DEMO_APP_CONFIG.portalBackendUrl,
                   macAddress: DEMO_APP_CONFIG.macAddress,
                   tmdbApiKey: '',
                   preferredProfile: 'cinema',

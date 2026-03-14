@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#B91C1C</color>
+    <color name="colorPrimaryDark">#090B10</color>
+    <color name="colorAccent">#F59E0B</color>
+    <color name="cinder_surface">#090B10</color>
+</resources>

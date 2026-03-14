@@ -1,14 +1,15 @@
 import { Link, useParams } from 'react-router-dom'
 import { MediaRail } from '../components/media-rail'
-import { getItemById } from '../lib/catalog-selectors'
-import { resolvePlayableItem } from '../lib/playback'
-import { resolveSeriesEpisodes } from '../lib/utils'
+import { getItemById, getResumeEntry, getResumeTarget, isInWatchlist } from '../lib/catalog-selectors'
+import { minutesFromSeconds, resolveSeriesEpisodes } from '../lib/utils'
 import { useAppStore } from '../store/app-store'
 
 export function DetailsPage() {
   const { itemId } = useParams()
   const { items } = useAppStore((state) => state.catalog)
   const history = useAppStore((state) => state.history)
+  const watchlist = useAppStore((state) => state.watchlist)
+  const toggleWatchlist = useAppStore((state) => state.toggleWatchlist)
   const item = getItemById(items, itemId)
 
   if (!item) {
@@ -25,7 +26,10 @@ export function DetailsPage() {
     )
   }
 
-  const playable = resolvePlayableItem(item, items)
+  const playable = getResumeTarget(item, items, history)
+  const resumeEntry = getResumeEntry(item, items, history)
+  const canWatchlist = item.type === 'movie' || item.type === 'series'
+  const watchlisted = canWatchlist ? isInWatchlist(item.id, watchlist) : false
   const related = items
     .filter((candidate) => candidate.id !== item.id && candidate.type !== 'episode' && candidate.genres.some((genre) => item.genres.includes(genre)))
     .slice(0, 10)
@@ -49,11 +53,19 @@ export function DetailsPage() {
             ))}
           </p>
           <p className="hero-summary">{item.synopsis}</p>
+          {resumeEntry && item.type !== 'channel' ? (
+            <p className="detail-resume-copy">Resume from {minutesFromSeconds(resumeEntry.positionSeconds)}.</p>
+          ) : null}
           <div className="hero-actions">
             {playable ? (
               <Link className="action-link action-link--primary" data-focusable="true" to={`/player/${playable.id}`}>
-                Play
+                {resumeEntry ? 'Resume' : 'Play'}
               </Link>
+            ) : null}
+            {canWatchlist ? (
+              <button className="action-link" data-focusable="true" type="button" onClick={() => void toggleWatchlist(item.id)}>
+                {watchlisted ? 'Remove Watchlist' : 'Add To Watchlist'}
+              </button>
             ) : null}
             <Link className="action-link" data-focusable="true" to="/">
               Back Home
@@ -103,6 +115,7 @@ export function DetailsPage() {
       {related.length ? (
         <MediaRail
           history={history}
+          items={items}
           rail={{
             id: 'related',
             title: 'Related Picks',

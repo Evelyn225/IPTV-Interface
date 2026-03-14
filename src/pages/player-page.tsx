@@ -1,5 +1,5 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { getItemById } from '../lib/catalog-selectors'
 import { detectPlaybackMode } from '../lib/playback'
 import { minutesFromSeconds } from '../lib/utils'
@@ -8,6 +8,7 @@ import { useAppStore } from '../store/app-store'
 
 export function PlayerPage() {
   const { itemId } = useParams()
+  const navigate = useNavigate()
   const { items } = useAppStore((state) => state.catalog)
   const history = useAppStore((state) => state.history)
   const recordPlayback = useAppStore((state) => state.recordPlayback)
@@ -22,24 +23,34 @@ export function PlayerPage() {
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
 
+  const persistProgress = useEffectEvent((options?: { force?: boolean; completed?: boolean }) => {
+    const video = videoRef.current
+    if (!video || !item || item.type === 'channel') {
+      return
+    }
+
+    if (!options?.force && Math.abs(video.currentTime - lastSavedRef.current) < 5) {
+      return
+    }
+
+    lastSavedRef.current = video.currentTime
+    const resolvedDuration = Number.isFinite(video.duration) ? video.duration : undefined
+    void recordPlayback({
+      itemId: item.id,
+      positionSeconds: options?.completed && resolvedDuration ? resolvedDuration : video.currentTime,
+      durationSeconds: resolvedDuration,
+    })
+  })
+
   const onTimeUpdate = useEffectEvent(() => {
     const video = videoRef.current
     if (!video || !item || item.type === 'channel') {
       return
     }
 
-    if (Math.abs(video.currentTime - lastSavedRef.current) < 5) {
-      return
-    }
-
-    lastSavedRef.current = video.currentTime
     setCurrentTime(video.currentTime)
     setDuration(Number.isFinite(video.duration) ? video.duration : 0)
-    void recordPlayback({
-      itemId: item.id,
-      positionSeconds: video.currentTime,
-      durationSeconds: Number.isFinite(video.duration) ? video.duration : undefined,
-    })
+    persistProgress()
   })
 
   const onPlaybackStateChange = useEffectEvent(() => {
@@ -119,18 +130,25 @@ export function PlayerPage() {
       setErrorMessage(error instanceof Error ? error.message : 'Playback could not start.')
     })
 
+    const persistOnPause = () => persistProgress({ force: true })
+    const persistOnEnded = () => persistProgress({ force: true, completed: true })
     currentVideo.addEventListener('timeupdate', onTimeUpdate)
     currentVideo.addEventListener('play', onPlaybackStateChange)
     currentVideo.addEventListener('pause', onPlaybackStateChange)
     currentVideo.addEventListener('volumechange', onPlaybackStateChange)
     currentVideo.addEventListener('loadedmetadata', onPlaybackStateChange)
+    currentVideo.addEventListener('pause', persistOnPause)
+    currentVideo.addEventListener('ended', persistOnEnded)
     return () => {
+      persistProgress({ force: true })
       cancelled = true
       currentVideo.removeEventListener('timeupdate', onTimeUpdate)
       currentVideo.removeEventListener('play', onPlaybackStateChange)
       currentVideo.removeEventListener('pause', onPlaybackStateChange)
       currentVideo.removeEventListener('volumechange', onPlaybackStateChange)
       currentVideo.removeEventListener('loadedmetadata', onPlaybackStateChange)
+      currentVideo.removeEventListener('pause', persistOnPause)
+      currentVideo.removeEventListener('ended', persistOnEnded)
       hlsRef.current?.destroy()
       hlsRef.current = null
       currentVideo.pause()
@@ -150,6 +168,24 @@ export function PlayerPage() {
     } else {
       video.pause()
     }
+  }
+
+  function playVideo() {
+    const video = videoRef.current
+    if (!video) {
+      return
+    }
+
+    void video.play().catch(() => setErrorMessage('Playback could not start.'))
+  }
+
+  function pauseVideo() {
+    const video = videoRef.current
+    if (!video) {
+      return
+    }
+
+    video.pause()
   }
 
   function toggleMute() {
@@ -196,6 +232,88 @@ export function PlayerPage() {
       setErrorMessage('Fullscreen is not available in this browser.')
     }
   }
+
+  const onRemoteKeyDown = useEffectEvent((event: KeyboardEvent) => {
+    if (!item) {
+      return
+    }
+
+    const target = event.target
+    if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+      return
+    }
+
+    switch (event.key) {
+      case ' ':
+      case 'Enter':
+      case 'NumpadEnter':
+      case 'MediaPlayPause':
+        event.preventDefault()
+        togglePlayPause()
+        break
+      case 'MediaPlay':
+        event.preventDefault()
+        playVideo()
+        break
+      case 'MediaPause':
+        event.preventDefault()
+        pauseVideo()
+        break
+      case 'ArrowLeft':
+      case 'MediaRewind':
+      case 'j':
+      case 'J':
+        if (!item.source.isLive) {
+          event.preventDefault()
+          seekBy(-10)
+        }
+        break
+      case 'ArrowRight':
+      case 'MediaFastForward':
+      case 'l':
+      case 'L':
+        if (!item.source.isLive) {
+          event.preventDefault()
+          seekBy(10)
+        }
+        break
+      case 'm':
+      case 'M':
+      case 'AudioVolumeMute':
+        event.preventDefault()
+        toggleMute()
+        break
+      case 'f':
+      case 'F':
+        event.preventDefault()
+        void enterFullscreen()
+        break
+      case 'Escape':
+      case 'Backspace':
+      case 'BrowserBack':
+      case 'GoBack':
+        event.preventDefault()
+        if (document.fullscreenElement && document.exitFullscreen) {
+          void document.exitFullscreen().catch(() => undefined)
+          return
+        }
+
+        navigate(`/details/${item.id}`)
+        break
+      default:
+        break
+    }
+  })
+
+  useEffect(() => {
+    if (!item) {
+      return
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => onRemoteKeyDown(event)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [item, navigate])
 
   if (!item) {
     return (
@@ -284,6 +402,13 @@ export function PlayerPage() {
               <span>Now Playing</span>
             </div>
           )}
+        </div>
+        <div className="player-shortcuts" aria-label="Remote shortcuts">
+          <span className="player-shortcut-chip">Select: {isPlaying ? 'Pause' : 'Play'}</span>
+          {!isLive ? <span className="player-shortcut-chip">Left/Right: Seek 10s</span> : <span className="player-shortcut-chip">Left/Right: Stay tuned</span>}
+          <span className="player-shortcut-chip">M: {isMuted ? 'Unmute' : 'Mute'}</span>
+          <span className="player-shortcut-chip">F: Fullscreen</span>
+          <span className="player-shortcut-chip">Back: Details</span>
         </div>
         {errorMessage ? <div className="status-banner status-banner--error">{errorMessage}</div> : null}
       </div>

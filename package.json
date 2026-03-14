@@ -5,16 +5,28 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "proxy": "node server/index.mjs",
+    "dev:full": "concurrently \"npm:proxy\" \"npm:dev\"",
     "build": "tsc -b && vite build",
+    "build:android": "npm run build && npx cap sync android",
+    "android:add": "npx cap add android",
+    "android:sync": "npx cap sync android",
+    "android:open": "npx cap open android",
+    "android:build:debug": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\build-android-debug.ps1",
+    "android:install:connected": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\install-firestick.ps1",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run"
   },
   "dependencies": {
+    "@capacitor/android": "^8.2.0",
+    "@capacitor/core": "^8.2.0",
     "@fontsource/bebas-neue": "^5.2.7",
     "@fontsource/instrument-sans": "^5.2.8",
+    "concurrently": "^9.2.1",
     "dexie": "^4.3.0",
+    "express": "^5.2.1",
     "hls.js": "^1.6.15",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
@@ -22,6 +34,7 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.2.0",
     "@eslint/js": "^9.39.4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

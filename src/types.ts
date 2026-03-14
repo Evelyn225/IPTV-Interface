@@ -12,6 +12,7 @@ export interface AppConfig {
   playlistUrl: string
   epgUrl: string
   portalUrl: string
+  portalBackendUrl: string
   macAddress: string
   tmdbApiKey: string
   lastRefreshAt?: string
@@ -113,6 +114,12 @@ export interface PlaybackHistoryEntry {
   positionSeconds: number
   durationSeconds?: number
   updatedAt: string
+}
+
+export interface WatchlistEntry {
+  id: string
+  itemId: string
+  addedAt: string
 }
 
 export interface TmdbCacheRecord {

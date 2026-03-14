@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import type { CatalogItem, PlaybackHistoryEntry } from '../types'
-import { resolvePlayableItem } from '../lib/playback'
+import { getResumeEntry, getResumeTarget } from '../lib/catalog-selectors'
 import { minutesFromSeconds } from '../lib/utils'
 
 interface HeroSpotlightProps {
@@ -8,9 +8,11 @@ interface HeroSpotlightProps {
   items: CatalogItem[]
   history: PlaybackHistoryEntry[]
   eyebrow: string
+  isWatchlisted?: boolean
+  onToggleWatchlist?: () => void
 }
 
-export function HeroSpotlight({ item, items, history, eyebrow }: HeroSpotlightProps) {
+export function HeroSpotlight({ item, items, history, eyebrow, isWatchlisted = false, onToggleWatchlist }: HeroSpotlightProps) {
   if (!item) {
     return (
       <section className="hero-card hero-card--empty">
@@ -24,8 +26,8 @@ export function HeroSpotlight({ item, items, history, eyebrow }: HeroSpotlightPr
     )
   }
 
-  const playable = resolvePlayableItem(item, items)
-  const historyEntry = history.find((entry) => entry.itemId === playable?.id)
+  const playable = getResumeTarget(item, items, history)
+  const historyEntry = getResumeEntry(item, items, history)
 
   return (
     <section
@@ -51,6 +53,11 @@ export function HeroSpotlight({ item, items, history, eyebrow }: HeroSpotlightPr
             <Link className="action-link action-link--primary" data-focusable="true" to={`/player/${playable.id}`}>
               {historyEntry ? `Resume ${minutesFromSeconds(historyEntry.positionSeconds)}` : 'Play Now'}
             </Link>
+          ) : null}
+          {onToggleWatchlist ? (
+            <button className="action-link" data-focusable="true" type="button" onClick={onToggleWatchlist}>
+              {isWatchlisted ? 'Remove Watchlist' : 'Add To Watchlist'}
+            </button>
           ) : null}
           <Link className="action-link" data-focusable="true" to={`/details/${item.id}`}>
             View Details

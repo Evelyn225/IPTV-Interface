@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Capacitor } from '@capacitor/core'
 import { StatusBanner } from '../components/status-banner'
 import { DEMO_APP_CONFIG } from '../lib/demo'
 import { loadTextResource } from '../lib/resource-loader'
@@ -6,6 +7,7 @@ import { testPortalConnection } from '../services/portal-provider'
 import { useAppStore } from '../store/app-store'
 
 export function SettingsPage() {
+  const usesOnDevicePortalBridge = Capacitor.getPlatform() === 'android'
   const config = useAppStore((state) => state.config)
   const refreshLibrary = useAppStore((state) => state.refreshLibrary)
   const clearCachedLibrary = useAppStore((state) => state.clearCachedLibrary)
@@ -17,6 +19,7 @@ export function SettingsPage() {
     playlistUrl: config?.playlistUrl ?? '',
     epgUrl: config?.epgUrl ?? '',
     portalUrl: config?.portalUrl ?? '',
+    portalBackendUrl: config?.portalBackendUrl ?? '',
     macAddress: config?.macAddress ?? '',
     tmdbApiKey: config?.tmdbApiKey ?? '',
     preferredProfile: config?.preferredProfile ?? 'cinema',
@@ -29,6 +32,7 @@ export function SettingsPage() {
       if (form.providerType === 'portal') {
         await testPortalConnection({
           portalUrl: form.portalUrl,
+          portalBackendUrl: form.portalBackendUrl,
           macAddress: form.macAddress,
         })
         setStatus('Portal handshake succeeded.')
@@ -120,6 +124,19 @@ export function SettingsPage() {
                   value={form.macAddress}
                 />
               </label>
+
+              {!usesOnDevicePortalBridge ? (
+                <label className="field">
+                  <span>Portal backend URL</span>
+                  <input
+                    className="text-field"
+                    data-focusable="true"
+                    onChange={(event) => setForm((current) => ({ ...current, portalBackendUrl: event.target.value }))}
+                    placeholder="http://192.168.x.x:8787"
+                    value={form.portalBackendUrl}
+                  />
+                </label>
+              ) : null}
             </>
           )}
 
@@ -175,6 +192,7 @@ export function SettingsPage() {
                   playlistUrl: DEMO_APP_CONFIG.playlistUrl,
                   epgUrl: DEMO_APP_CONFIG.epgUrl,
                   portalUrl: DEMO_APP_CONFIG.portalUrl,
+                  portalBackendUrl: DEMO_APP_CONFIG.portalBackendUrl,
                   macAddress: DEMO_APP_CONFIG.macAddress,
                   tmdbApiKey: '',
                   preferredProfile: 'cinema',

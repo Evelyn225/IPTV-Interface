@@ -5,6 +5,7 @@ import type {
   CatalogSnapshot,
   PlaybackHistoryEntry,
   TmdbCacheRecord,
+  WatchlistEntry,
 } from '../types'
 
 interface AppMetaRecord {
@@ -16,6 +17,7 @@ class FirestickDb extends Dexie {
   config!: Table<AppConfig, string>
   catalog!: Table<CatalogItem, string>
   history!: Table<PlaybackHistoryEntry, string>
+  watchlist!: Table<WatchlistEntry, string>
   meta!: Table<AppMetaRecord, string>
   tmdbCache!: Table<TmdbCacheRecord, string>
 
@@ -25,6 +27,14 @@ class FirestickDb extends Dexie {
       config: 'id',
       catalog: 'id, type, title, addedAt',
       history: 'id, itemId, updatedAt',
+      meta: 'key',
+      tmdbCache: 'key, updatedAt',
+    })
+    this.version(2).stores({
+      config: 'id',
+      catalog: 'id, type, title, addedAt',
+      history: 'id, itemId, updatedAt',
+      watchlist: 'id, itemId, addedAt',
       meta: 'key',
       tmdbCache: 'key, updatedAt',
     })
@@ -67,6 +77,18 @@ export async function savePlaybackHistory(entry: PlaybackHistoryEntry) {
 
 export async function loadPlaybackHistory() {
   return db.history.orderBy('updatedAt').reverse().toArray()
+}
+
+export async function saveWatchlistEntry(entry: WatchlistEntry) {
+  await db.watchlist.put(entry)
+}
+
+export async function deleteWatchlistEntry(itemId: string) {
+  await db.watchlist.delete(itemId)
+}
+
+export async function loadWatchlist() {
+  return db.watchlist.orderBy('addedAt').reverse().toArray()
 }
 
 export async function clearLibrary() {

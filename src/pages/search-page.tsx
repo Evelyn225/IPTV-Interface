@@ -1,6 +1,6 @@
 import { useDeferredValue, useState } from 'react'
 import { MediaCard } from '../components/media-card'
-import { searchLibrary } from '../lib/catalog-selectors'
+import { getResumeEntry, searchLibrary } from '../lib/catalog-selectors'
 import { useAppStore } from '../store/app-store'
 
 export function SearchPage() {
@@ -32,7 +32,7 @@ export function SearchPage() {
         </div>
         <div className="feature-grid">
           {results.map((item) => (
-            <MediaCard key={item.id} historyEntry={history.find((entry) => entry.itemId === item.id)} item={item} />
+            <MediaCard key={item.id} historyEntry={getResumeEntry(item, items, history) ?? undefined} item={item} />
           ))}
         </div>
       </section>

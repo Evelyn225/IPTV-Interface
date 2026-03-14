@@ -8,7 +8,7 @@ import { URL } from 'node:url'
 function pickForwardHeaders(headers: IncomingHttpHeaders) {
   const forwarded: Record<string, string> = {}
 
-  const directAllowed = ['accept', 'authorization', 'cookie', 'user-agent', 'x-user-agent']
+  const directAllowed = ['accept', 'authorization', 'cookie', 'user-agent', 'x-user-agent', 'sn']
   for (const [key, value] of Object.entries(headers)) {
     if (directAllowed.includes(key.toLowerCase()) && typeof value === 'string') {
       forwarded[key] = value
@@ -21,6 +21,7 @@ function pickForwardHeaders(headers: IncomingHttpHeaders) {
     'x-proxy-cookie': 'Cookie',
     'x-proxy-user-agent': 'User-Agent',
     'x-proxy-x-user-agent': 'X-User-Agent',
+    'x-proxy-sn': 'SN',
   }
 
   for (const [proxyHeader, realHeader] of Object.entries(proxyMap)) {

@@ -1,12 +1,14 @@
+import { getResumeEntry } from '../lib/catalog-selectors'
 import type { PlaybackHistoryEntry, Rail } from '../types'
 import { MediaCard } from './media-card'
 
 interface MediaRailProps {
   rail: Rail
   history: PlaybackHistoryEntry[]
+  items: Rail['items']
 }
 
-export function MediaRail({ rail, history }: MediaRailProps) {
+export function MediaRail({ rail, history, items }: MediaRailProps) {
   return (
     <section className="media-rail-section">
       <div className="section-heading">
@@ -15,7 +17,7 @@ export function MediaRail({ rail, history }: MediaRailProps) {
       </div>
       <div className="media-rail-row">
         {rail.items.map((item) => (
-          <MediaCard key={item.id} historyEntry={history.find((entry) => entry.itemId === item.id)} item={item} />
+          <MediaCard key={item.id} historyEntry={getResumeEntry(item, items, history) ?? undefined} item={item} />
         ))}
       </div>
     </section>

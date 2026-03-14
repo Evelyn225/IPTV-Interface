@@ -346,6 +346,12 @@ button {
   line-height: 1.65;
 }
 
+.detail-resume-copy {
+  margin: 0;
+  color: #ffd166;
+  font-weight: 600;
+}
+
 .filter-panel,
 .media-rail-section {
   margin-top: 1.5rem;
@@ -518,6 +524,7 @@ button {
   bottom: 1.25rem;
   display: grid;
   gap: 1rem;
+  max-width: min(1080px, calc(100vw - 2.5rem));
 }
 
 .player-summary {
@@ -562,6 +569,24 @@ button {
 .player-timeline {
   display: grid;
   gap: 0.65rem;
+}
+
+.player-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.player-shortcut-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.5rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  font-size: 0.92rem;
 }
 
 .player-time-row {

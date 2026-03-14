@@ -9,6 +9,7 @@ export const DEMO_APP_CONFIG: AppConfig = {
   playlistUrl: DEMO_PLAYLIST_URL,
   epgUrl: DEMO_EPG_URL,
   portalUrl: '',
+  portalBackendUrl: '',
   macAddress: '',
   tmdbApiKey: '',
   preferredProfile: 'cinema',
