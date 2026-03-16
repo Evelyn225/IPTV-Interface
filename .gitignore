@@ -33,4 +33,3 @@ keys.env
 .android-local/
 android/.gradle/
 android/local.properties
-android/app/build/
